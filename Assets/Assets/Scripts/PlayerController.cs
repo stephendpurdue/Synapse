@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float gravity = -9.8f;
     
     private CharacterController controller;
-    private Vector3 moveInput;
+    private Vector2 moveInput;
     private Vector3 velocity;
     
     
@@ -30,12 +30,15 @@ public class PlayerController : MonoBehaviour
         if (context.performed && controller.isGrounded)
         {
             Debug.Log("We are supposed to jump");
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
     }
     
     // Update is called once per frame
     void Update()
     {
-        
+        velocity.y += gravity * Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime);
     }
 }
+
