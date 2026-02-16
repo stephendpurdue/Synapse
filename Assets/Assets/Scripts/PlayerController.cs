@@ -37,11 +37,23 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Vector3 move = new Vector3(moveInput.x, 0, moveInput.y);
-        controller.Move(move * speed * Time.deltaTime);
+        // Reset vertical velocity when grounded
+        if (controller.isGrounded && velocity.y < 0)
+        {
+            velocity.y = -2f; // Small value to keep grounded
+        }
 
+        // Calculate horizontal movement
+        Vector3 move = new Vector3(moveInput.x, 0, moveInput.y) * speed;
+        
+        // Apply gravity
         velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        
+        // Combine horizontal and vertical movement
+        move.y = velocity.y;
+        
+        // Move character once with combined movement
+        controller.Move(move * Time.deltaTime);
     }
 }
 
