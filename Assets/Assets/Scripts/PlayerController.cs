@@ -3,9 +3,11 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] private Transform cameraTransform;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.8f;
+    [SerializeField] private bool shouldFaceMoveDirection = false;
     
     private CharacterController controller;
     private Vector2 moveInput;
@@ -37,23 +39,38 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Reset vertical velocity when grounded
+        // Reset Gravity
         if (controller.isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f; // Small value to keep grounded
+            velocity.y = -2f; // Small downward force to keep grounded
         }
 
+        // Calculate camera-relative movement directions
+        Vector3 forward = cameraTransform.forward;
+        Vector3 right = cameraTransform.right;
+
+        forward.y = 0;
+        right.y = 0;
+
+        forward.Normalize();
+        right.Normalize();
+
         // Calculate horizontal movement
-        Vector3 move = new Vector3(moveInput.x, 0, moveInput.y) * speed;
+        Vector3 moveDirection = forward * moveInput.y + right * moveInput.x;
+
+        // Rotate player to face movement direction
+        if (shouldFaceMoveDirection && moveDirection.sqrMagnitude > 0.001f)
+        {
+            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, 10f * Time.deltaTime);
+        }
         
         // Apply gravity
         velocity.y += gravity * Time.deltaTime;
         
-        // Combine horizontal and vertical movement
-        move.y = velocity.y;
-        
-        // Move character once with combined movement
-        controller.Move(move * Time.deltaTime);
+        // Combine horizontal and vertical movement into single Move call
+        Vector3 finalMovement = (moveDirection * speed + Vector3.up * velocity.y) * Time.deltaTime;
+        controller.Move(finalMovement);
     }
 }
 
