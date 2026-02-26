@@ -12,12 +12,14 @@ public class PlayerController : MonoBehaviour
     private CharacterController controller;
     private Vector2 moveInput;
     private Vector3 velocity;
+    private PlayerAttackTracker attackTracker;
     
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        attackTracker = GetComponent<PlayerAttackTracker>();
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -33,6 +35,15 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log("We are supposed to jump");
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+
+    public void OnAttack(InputAction.CallbackContext context)
+    {
+    if (context.performed)
+        {
+            attackTracker.RegisterAttack();
+            Debug.Log("Attack registered");
         }
     }
     
