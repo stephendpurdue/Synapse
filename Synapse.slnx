@@ -2,5 +2,4 @@
   <Project Path="GameScripts.csproj" />
   <Project Path="Tests.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="Tests.csproj" />
 </Solution>
