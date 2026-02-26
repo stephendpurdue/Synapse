@@ -9,20 +9,16 @@ public class ZombieController : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    void Update()
+    public void SetSpeed(float speed)
     {
-
-        float speed = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")).magnitude;
         animator.SetFloat("Speed", speed);
-
-        // Trigger attack on Space
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            animator.SetTrigger("Attack");
-        }
     }
 
-    // Call these from other scripts (e.g., health system)
+    public void TriggerAttack()
+    {
+        animator.SetTrigger("Attack");
+    }
+
     public void TakeHit()
     {
         animator.SetTrigger("Hit");
