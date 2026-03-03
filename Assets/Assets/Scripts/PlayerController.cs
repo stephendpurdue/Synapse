@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 moveInput;
     private Vector3 velocity;
     private PlayerAttackTracker attackTracker;
+    private bool hasDoubleJumped;
     
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -31,10 +32,20 @@ public class PlayerController : MonoBehaviour
     public void OnJump(InputAction.CallbackContext context)
     {
         Debug.Log($"Jumping: {context.performed} - Is Grounded: {controller.isGrounded}");
-        if (context.performed && controller.isGrounded)
+        if (context.performed)
         {
-            Debug.Log("We are supposed to jump");
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            if (controller.isGrounded)
+            {
+                Debug.Log("Jump");
+                velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                hasDoubleJumped = false;
+            }
+            else if (!hasDoubleJumped)
+            {
+                Debug.Log("Double Jump");
+                velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                hasDoubleJumped = true;
+            }
         }
     }
 
