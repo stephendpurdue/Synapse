@@ -21,12 +21,15 @@ public class ZombieAgent : Agent
     private bool episodeEnding = false;
     private HealthSystem zombieHealth;
     private float maxHealth = 100f;
+    private float episodeStartTime;
+    private float minimumEpisodeDuration = 15f;
 
     public float HealthPercentage => zombieHealth.HealthPercentage;
     public float CurrentHealth => zombieHealth.CurrentHealth;
 
     public override void OnEpisodeBegin()
     {
+        episodeStartTime = Time.time;
         zombieHealth = new HealthSystem(maxHealth);
         playerHealth.ResetHealth();
         attackTracker.Reset();
@@ -45,56 +48,100 @@ public class ZombieAgent : Agent
     }
 
     public override void OnActionReceived(ActionBuffers actions)
+{
+    if (actions.ContinuousActions.Length < 2 || actions.DiscreteActions.Length < 1)
+        return;
+
+    float moveX = actions.ContinuousActions[0];
+    float moveZ = actions.ContinuousActions[1];
+
+    Vector3 moveDirection = new Vector3(moveX, 0f, moveZ).normalized;
+    transform.position += moveDirection * moveSpeed * Time.deltaTime;
+
+    // Face the player
+    Vector3 directionToPlayer = (player.position - transform.position).normalized;
+    if (directionToPlayer != Vector3.zero)
     {
-        if (actions.ContinuousActions.Length < 2 || actions.DiscreteActions.Length < 1)
-            return;
+        transform.rotation = Quaternion.LookRotation(directionToPlayer);
+    }
 
-        float moveX = actions.ContinuousActions[0];
-        float moveZ = actions.ContinuousActions[1];
+    zombieController.SetSpeed(moveDirection.magnitude);
 
-        Vector3 moveDirection = new Vector3(moveX, 0f, moveZ).normalized;
-        transform.position += moveDirection * moveSpeed * Time.deltaTime;
+    // Distance based rewards
+    float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+    if (distanceToPlayer > 5f)
+    {
+        // Punish passivity
+        AddReward(-0.01f);
+    }
+    else
+    {
+        // Reward engagement
+        AddReward(0.01f);
+    }
 
-        Vector3 directionToPlayer = (player.position - transform.position).normalized;
-        if (directionToPlayer != Vector3.zero)
+    // Survival reward
+    AddReward(0.001f);
+
+    // Attack logic
+    int attackAction = actions.DiscreteActions[0];
+    attackCooldownTimer -= Time.deltaTime;
+
+    if (attackAction == 1 && attackCooldownTimer <= 0f)
+    {
+        if (distanceToPlayer <= attackRange)
         {
-            transform.rotation = Quaternion.LookRotation(directionToPlayer);
-        }
+            float healthBefore = playerHealth.HealthPercentage;
+            playerHealth.TakeDamage(attackDamage);
+            float healthAfter = playerHealth.HealthPercentage;
 
-        zombieController.SetSpeed(moveDirection.magnitude);
+            // Reward for dealing damage
+            AddReward(0.1f);
 
-        int attackAction = actions.DiscreteActions[0];
-        attackCooldownTimer -= Time.deltaTime;
-
-        if (attackAction == 1 && attackCooldownTimer <= 0f)
-        {
-            float distanceToPlayer = Vector3.Distance(
-                transform.position, player.position);
-
-            if (distanceToPlayer <= attackRange)
+            // Reward for getting player low
+            if (healthAfter < 0.3f && healthBefore >= 0.3f)
             {
-                playerHealth.TakeDamage(attackDamage);
-                zombieController.TriggerAttack();
-                attackCooldownTimer = attackCooldown;
+                AddReward(0.2f);
             }
-        }
 
-        if (playerHealth.IsDead)
-        {
-            StartCoroutine(EndEpisodeAfterDelay(2f));
-        }
-
-        if (zombieHealth.IsDead)
-        {
-            zombieController.Die();
-            StartCoroutine(EndEpisodeAfterDelay(2f));
+            zombieController.TriggerAttack();
+            attackCooldownTimer = attackCooldown;
         }
     }
+
+    // Player death
+    if (playerHealth.IsDead)
+    {
+        float episodeDuration = Time.time - episodeStartTime;
+
+        if (episodeDuration < minimumEpisodeDuration)
+        {
+            // Punish killing player too quickly
+            AddReward(-0.5f);
+        }
+        else
+        {
+            // Reward for a well fought encounter
+            AddReward(1.0f);
+        }
+
+        StartCoroutine(EndEpisodeAfterDelay(2f));
+    }
+
+    // Zombie death
+    if (zombieHealth.IsDead)
+    {
+        AddReward(-1.0f);
+        zombieController.Die();
+        StartCoroutine(EndEpisodeAfterDelay(2f));
+    }
+}
 
     public void TakeDamage(float amount)
     {
         zombieHealth.TakeDamage(amount);
         zombieController.TakeHit();
+        AddReward(-0.05f);
     }
 
     private System.Collections.IEnumerator EndEpisodeAfterDelay(float delay)
