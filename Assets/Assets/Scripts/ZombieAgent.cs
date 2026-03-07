@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
@@ -16,25 +17,35 @@ public class ZombieAgent : Agent
     [SerializeField] private float attackRange = 1.5f;
     [SerializeField] private float attackDamage = 10f;
     [SerializeField] private float attackCooldown = 1.5f;
+    [SerializeField] private float minimumEpisodeDuration = 15f;
 
+    private NavMeshAgent navMeshAgent;
     private float attackCooldownTimer = 0f;
     private bool episodeEnding = false;
     private HealthSystem zombieHealth;
     private float maxHealth = 100f;
     private float episodeStartTime;
-    private float minimumEpisodeDuration = 15f;
 
     public float HealthPercentage => zombieHealth.HealthPercentage;
     public float CurrentHealth => zombieHealth.CurrentHealth;
 
+    void Awake()
+    {
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        navMeshAgent.speed = moveSpeed;
+        navMeshAgent.stoppingDistance = attackRange;
+        navMeshAgent.angularSpeed = 360f;
+    }
+
     public override void OnEpisodeBegin()
     {
         episodeStartTime = Time.time;
+        episodeEnding = false;
+        attackCooldownTimer = 0f;
         zombieHealth = new HealthSystem(maxHealth);
         playerHealth.ResetHealth();
         attackTracker.Reset();
-        attackCooldownTimer = 0f;
-        episodeEnding = false;
+        navMeshAgent.ResetPath();
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -52,11 +63,12 @@ public class ZombieAgent : Agent
     if (actions.ContinuousActions.Length < 2 || actions.DiscreteActions.Length < 1)
         return;
 
-    float moveX = actions.ContinuousActions[0];
-    float moveZ = actions.ContinuousActions[1];
+    // NavMesh always chases player directly
+    navMeshAgent.SetDestination(player.position);
 
-    Vector3 moveDirection = new Vector3(moveX, 0f, moveZ).normalized;
-    transform.position += moveDirection * moveSpeed * Time.deltaTime;
+    // Update animator based on actual velocity
+    float speed = navMeshAgent.velocity.magnitude;
+    zombieController.SetSpeed(speed);
 
     // Face the player
     Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -65,25 +77,20 @@ public class ZombieAgent : Agent
         transform.rotation = Quaternion.LookRotation(directionToPlayer);
     }
 
-    zombieController.SetSpeed(moveDirection.magnitude);
-
     // Distance based rewards
     float distanceToPlayer = Vector3.Distance(transform.position, player.position);
     if (distanceToPlayer > 5f)
     {
-        // Punish passivity
         AddReward(-0.01f);
     }
     else
     {
-        // Reward engagement
         AddReward(0.01f);
     }
 
-    // Survival reward
     AddReward(0.001f);
 
-    // Attack logic
+    // PPO controls attack decision only
     int attackAction = actions.DiscreteActions[0];
     attackCooldownTimer -= Time.deltaTime;
 
@@ -95,10 +102,8 @@ public class ZombieAgent : Agent
             playerHealth.TakeDamage(attackDamage);
             float healthAfter = playerHealth.HealthPercentage;
 
-            // Reward for dealing damage
             AddReward(0.1f);
 
-            // Reward for getting player low
             if (healthAfter < 0.3f && healthBefore >= 0.3f)
             {
                 AddReward(0.2f);
@@ -113,18 +118,7 @@ public class ZombieAgent : Agent
     if (playerHealth.IsDead)
     {
         float episodeDuration = Time.time - episodeStartTime;
-
-        if (episodeDuration < minimumEpisodeDuration)
-        {
-            // Punish killing player too quickly
-            AddReward(-0.5f);
-        }
-        else
-        {
-            // Reward for a well fought encounter
-            AddReward(1.0f);
-        }
-
+        AddReward(episodeDuration < minimumEpisodeDuration ? -0.5f : 1.0f);
         StartCoroutine(EndEpisodeAfterDelay(2f));
     }
 
@@ -136,6 +130,23 @@ public class ZombieAgent : Agent
         StartCoroutine(EndEpisodeAfterDelay(2f));
     }
 }
+
+    public override void Heuristic(in ActionBuffers actionsOut)
+    {
+        if (actionsOut.ContinuousActions.Length < 2 ||
+            actionsOut.DiscreteActions.Length < 1)
+            return;
+
+        var continuousActions = actionsOut.ContinuousActions;
+        var discreteActions = actionsOut.DiscreteActions;
+
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        continuousActions[0] = directionToPlayer.x;
+        continuousActions[1] = directionToPlayer.z;
+
+        float distance = Vector3.Distance(transform.position, player.position);
+        discreteActions[0] = distance <= attackRange ? 1 : 0;
+    }
 
     public void TakeDamage(float amount)
     {

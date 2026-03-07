@@ -5,7 +5,8 @@
         "GUID:75469ad4d38634e559750d17036d5f7c",
         "Unity.Cinemachine",
         "Unity.TextMeshPro",
-        "Unity.ML-Agents"
+        "Unity.ML-Agents",
+        "Unity.AI.Navigation"
     
     ],
     "includePlatforms": [],
