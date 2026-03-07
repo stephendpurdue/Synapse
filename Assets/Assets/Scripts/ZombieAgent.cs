@@ -39,6 +39,7 @@ public class ZombieAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+
         episodeStartTime = Time.time;
         episodeEnding = false;
         attackCooldownTimer = 0f;
@@ -59,8 +60,11 @@ public class ZombieAgent : Agent
     }
 
     public override void OnActionReceived(ActionBuffers actions)
-{
-    if (actions.ContinuousActions.Length < 2 || actions.DiscreteActions.Length < 1)
+    {
+
+        navMeshAgent.SetDestination(player.position);
+
+        if (actions.ContinuousActions.Length < 2 || actions.DiscreteActions.Length < 1)
         return;
 
     // NavMesh always chases player directly
