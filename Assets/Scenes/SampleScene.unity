@@ -2271,9 +2271,8 @@ MonoBehaviour:
   playerHealth: {fileID: 425241453}
   attackTracker: {fileID: 425241452}
   zombieController: {fileID: 1127536368}
-  moveSpeed: 3.5
   attackRange: 1.5
-  attackDamage: 10
+  attackDamage: 25
   attackCooldown: 1.5
   minimumEpisodeDuration: 15
 --- !u!114 &1127536372
