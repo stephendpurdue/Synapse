@@ -4,9 +4,16 @@ public class ZombieController : MonoBehaviour
 {
     private Animator animator;
 
-    void Start()
+    void Awake()
     {
         animator = GetComponent<Animator>();
+    }
+
+    public void Reset()
+    {
+        animator.SetBool("IsDead", false);
+        animator.ResetTrigger("Attack");
+        animator.ResetTrigger("Hit");
     }
 
     public void SetSpeed(float speed)
