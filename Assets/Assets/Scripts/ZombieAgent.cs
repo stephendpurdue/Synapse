@@ -27,6 +27,7 @@ public class ZombieAgent : Agent
     private float maxHealth = 100f;
     private float episodeStartTime;
     private float damageDealtThisStep = 0f;
+    private float currentCooldownMultiplier = 1.0f;
 
     public float HealthPercentage => zombieHealth?.HealthPercentage ?? 0f;
     public float CurrentHealth => zombieHealth?.CurrentHealth ?? 0f;
@@ -56,6 +57,7 @@ public class ZombieAgent : Agent
         episodeStartTime = Time.time;
         attackCooldownTimer = attackCooldown;
         damageDealtThisStep = 0f;
+        currentCooldownMultiplier = 1.0f;
         zombieHealth = new HealthSystem(maxHealth);
         playerHealth.ResetHealth();
         attackTracker.Reset();
@@ -93,20 +95,20 @@ public class ZombieAgent : Agent
                 );
             }
 
-            // Attack
+            // Attack using PPO-controlled cooldown multiplier
             attackCooldownTimer -= Time.deltaTime;
             if (attackCooldownTimer <= 0f)
             {
                 playerHealth.TakeDamage(attackDamage);
                 damageDealtThisStep += attackDamage;
                 zombieController.TriggerAttack();
-                attackCooldownTimer = attackCooldown;
+                attackCooldownTimer = attackCooldown * currentCooldownMultiplier;
             }
         }
 
         zombieController.SetSpeed(navMeshAgent.velocity.magnitude);
 
-        // Death checks in Update to ensure they're always caught
+        // Player death
         if (playerHealth.IsDead && !episodeEnding)
         {
             float episodeDuration = Time.time - episodeStartTime;
@@ -129,6 +131,7 @@ public class ZombieAgent : Agent
             StartCoroutine(EndEpisodeAfterDelay(2f));
         }
 
+        // Zombie death
         if (zombieHealth.IsDead && !episodeEnding)
         {
             AddReward(-1.0f);
@@ -157,6 +160,10 @@ public class ZombieAgent : Agent
     public override void OnActionReceived(ActionBuffers actions)
     {
         if (zombieHealth == null || episodeEnding) return;
+
+        // PPO controls aggression level
+        int aggressionLevel = actions.DiscreteActions[0];
+        currentCooldownMultiplier = aggressionLevel == 0 ? 2.0f : 1.0f;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         float episodeDuration = Time.time - episodeStartTime;
