@@ -2,7 +2,7 @@
 
 ### Project Overview:
 
-Synapse is an adaptive boss trainer created in Unity. It uses Proximal Policy Optimisation (PPO) reinforcement learning to train a boss opponent with adaptive movesets and real-time performance calibration to adjust attack patterns and aggression. The aim of this project was toi test if machine learning systems are efficient in systemic, failure drive game development.
+Synapse is an adaptive boss trainer created in Unity. It uses Proximal Policy Optimisation (PPO) reinforcement learning to train a boss opponent with adaptive movesets and real-time performance calibration to adjust attack patterns and aggression. This project aimed to test whether machine learning systems are efficient in systematic, failure-driven game development.
 
 This project was created as part of a research assignment during my BSc in Game Development.
 
