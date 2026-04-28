@@ -17,6 +17,8 @@ This project was created as part of a research assignment during my BSc in Game 
 
 To run Synapse, either clone the repo or download the .zip file and import it to Unity; the game requires Unity version 2022.3.62f2.
 
+If you wish to train your own boss opponent, simply import a new prefab, swap out the preset Zombie boss with your imported one, attach the relevant scripts, and begin training. You can then export the opponent and the YAML file once training concludes, it is advised to train for a minimum of 500,000 steps to ensure proper training. 
+
 ### Project Structure:
 
 
