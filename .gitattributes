@@ -1,0 +1,8 @@
+# Mark shader and generated files so they don't skew language stats
+*.shader linguist-vendored
+*.cginc linguist-vendored
+*.hlsl linguist-vendored
+*.glsl linguist-vendored
+
+# Explicitly make C# detectable
+*.cs linguist-detectable=true
